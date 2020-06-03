@@ -22,7 +22,7 @@ namespace LibInfluxDB.Net
         Task<InfluxDbApiResponse> DescribeDatabases(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers);
 
         Task<InfluxDbApiResponse> Write(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers, string name,
-            Serie[] series, string timePrecision);
+            Point[] series, string timePrecision);
 
         Task<InfluxDbApiResponse> Query(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers, string name,
             string query, string timePrecision);

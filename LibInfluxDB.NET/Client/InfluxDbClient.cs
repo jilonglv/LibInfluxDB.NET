@@ -21,7 +21,10 @@ namespace LibInfluxDB.Net
         private const string Name = "name";
         private const string Database = "database";
         private const string TimePrecision = "time_precision";
-
+        private const string DB = "db";
+        private int VER = 152;
+        int _ver = 152;
+        FormatterBase formatter = new FormatterBase();
         private readonly InfluxDbClientConfiguration _configuration;
 
         private readonly ApiResponseErrorHandlingDelegate _defaultErrorHandlingDelegate = (statusCode, body) =>
@@ -44,13 +47,19 @@ namespace LibInfluxDB.Net
 
         public Task<InfluxDbApiResponse> Version(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers)
         {
-            return RequestAsync(errorHandlers, HttpMethod.Get, "interfaces", null, null, false, true);
+            return RequestAsync(errorHandlers, HttpMethod.Get, "ping", null, null, false, true);
         }
 
         public Task<InfluxDbApiResponse> CreateDatabase(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers,
             Database database)
         {
-            return RequestAsync(errorHandlers, HttpMethod.Post, "db", database);
+            if (_ver >= VER)
+                return RequestAsync(errorHandlers, HttpMethod.Post, "query", null,
+                    new Dictionary<string, string>() {
+                        { Q, string.Format("create database {0}", database.Name) }
+                    });
+            else
+                return RequestAsync(errorHandlers, HttpMethod.Post, "db", database);
         }
 
         public Task<InfluxDbApiResponse> CreateDatabase(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers,
@@ -63,29 +72,72 @@ namespace LibInfluxDB.Net
         public Task<InfluxDbApiResponse> DeleteDatabase(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers,
             string name)
         {
-            return RequestAsync(errorHandlers, HttpMethod.Delete, string.Format("db/{0}", name));
+            if (_ver >= VER)
+                return RequestAsync(errorHandlers, HttpMethod.Post, "query", null,
+                    new Dictionary<string, string>() {
+                        { Q, string.Format("drop database {0}",name) }
+                    });
+            else
+                return RequestAsync(errorHandlers, HttpMethod.Delete, string.Format("db/{0}", name));
         }
 
         public async Task<InfluxDbApiResponse> DescribeDatabases(
             IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers)
         {
-            return await RequestAsync(errorHandlers, HttpMethod.Get, "db");
+            if (_ver >= VER)
+                return await RequestAsync(errorHandlers, HttpMethod.Post, "query", null,
+                    new Dictionary<string, string>() {
+                        { Q, "show databases" }
+                    });
+            else
+                return await RequestAsync(errorHandlers, HttpMethod.Get, "db");
         }
-
-        public Task<InfluxDbApiResponse> Write(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers, string name,
-            Serie[] series, string timePrecision)
+        string GetHttpConnent(Point[] points)
         {
-            return RequestAsync(errorHandlers, HttpMethod.Post, string.Format("db/{0}/series", name), series,
-                new Dictionary<string, string>
-                {
+            return string.Join("\n", points.Select(p => formatter.PointToString(p)));
+
+        }
+        public Task<InfluxDbApiResponse> Write(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers, string name,
+            Point[] series, string timePrecision)
+        {
+            if (_ver >= VER)
+            {
+                return RequestAsync(errorHandlers, HttpMethod.Post, "write", GetHttpConnent(series),
+                    new Dictionary<string, string>
+                    {
+                        { DB,name},
                     {TimePrecision, timePrecision}
-                });
+                    });
+            }
+            else
+            {
+                return RequestAsync(errorHandlers, HttpMethod.Post, string.Format("db/{0}/series", name), series,
+                    new Dictionary<string, string>
+                    {
+                    {TimePrecision, timePrecision}
+                    });
+
+            }
         }
 
         public async Task<InfluxDbApiResponse> Query(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers,
             string name, string query, string timePrecision)
         {
-            return
+            if (_ver >= VER)
+            {
+                return
+                await
+                    RequestAsync(errorHandlers, HttpMethod.Get, "query", null,
+                        new Dictionary<string, string>
+                        {
+                            {DB,name },
+                            {Q, query},
+                            {TimePrecision, timePrecision}
+                        });
+            }
+            else
+            {
+                return
                 await
                     RequestAsync(errorHandlers, HttpMethod.Get, string.Format("db/{0}/series", name), null,
                         new Dictionary<string, string>
@@ -93,6 +145,7 @@ namespace LibInfluxDB.Net
                             {Q, query},
                             {TimePrecision, timePrecision}
                         });
+            }
         }
 
         public Task<InfluxDbApiResponse> CreateClusterAdmin(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers,
@@ -133,9 +186,8 @@ namespace LibInfluxDB.Net
         {
             return RequestAsync(errorHandlers, HttpMethod.Delete, string.Format("db/{0}/users/{1}", database, name));
         }
-
         public async Task<InfluxDbApiResponse> DescribeDatabaseUsers(
-            IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers, string database)
+   IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers, string database)
         {
             return await RequestAsync(errorHandlers, HttpMethod.Get, string.Format("db/{0}/users", database));
         }
@@ -169,6 +221,7 @@ namespace LibInfluxDB.Net
         public Task<InfluxDbApiResponse> DeleteSeries(IEnumerable<ApiResponseErrorHandlingDelegate> errorHandlers,
             string database, string name)
         {
+
             return RequestAsync(errorHandlers, HttpMethod.Delete, string.Format("db/{0}/series/{1}", database, name));
         }
 
@@ -298,7 +351,6 @@ namespace LibInfluxDB.Net
                 urlBuilder.AppendFormat("?{0}={1}&{2}={3}", U, HttpUtility.UrlEncode(_configuration.Username), P,
                     HttpUtility.UrlEncode(_configuration.Password));
             }
-
             if (extraParams != null && extraParams.Count > 0)
             {
                 var keyValues = new List<string>(extraParams.Count);
@@ -319,8 +371,9 @@ namespace LibInfluxDB.Net
 
             if (body != null)
             {
-                var content = new JsonRequestContent(body, new JsonSerializer());
-                HttpContent requestContent = content.GetContent();
+                //var content = new JsonRequestContent(body, new JsonSerializer());
+                //HttpContent requestContent = content.GetContent();
+                var requestContent = new StringContent(body.ToString(), Encoding.UTF8, "text/plain");
                 request.Content = requestContent;
             }
 

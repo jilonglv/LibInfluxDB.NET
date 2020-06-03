@@ -9,7 +9,7 @@ namespace LibInfluxDB.Net
     {
         Task<Pong> PingAsync();
         Task<string> VersionAsync();
-        Task<InfluxDbApiResponse> WriteAsync(string database, TimeUnit precision, params Serie[] series);
+        Task<InfluxDbApiResponse> WriteAsync(string database, TimeUnit precision, params Point[] series);
         Task<InfluxDbApiResponse> WriteUdpAsync(int port, TimeUnit precision, params Serie[] series);
         Task<List<Serie>> QueryAsync(string database, string query, TimeUnit precision);
         Task<InfluxDbApiCreateResponse> CreateDatabaseAsync(string name);

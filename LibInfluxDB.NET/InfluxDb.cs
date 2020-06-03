@@ -64,13 +64,13 @@ namespace LibInfluxDB.Net
         /// </summary>
         /// <param name="database">The name of the database to write to</param>
         /// <param name="precision">The precision used for the values.</param>
-        /// <param name="series">An array of <see cref="Serie" /> to write</param>
+        /// <param name="series">An array of <see cref="Point" /> to write</param>
         /// <returns></returns>
-        public async Task<InfluxDbApiResponse> WriteAsync(string database, TimeUnit precision, params Serie[] series)
+        public async Task<InfluxDbApiResponse> WriteAsync(string database, TimeUnit precision, params Point[] series)
         {
             return await _influxDbClient.Write(NoErrorHandlers, database, series, ToTimePrecision(precision));
         }
-
+#pragma warning disable 1998
         /// <summary>
         ///     Write a Series to the given database
         /// </summary>
@@ -85,7 +85,7 @@ namespace LibInfluxDB.Net
         {
             throw new NotImplementedException("WriteUdpAsync is not implemented yet, sorry.");
         }
-
+#pragma warning restore 1998
         /// <summary>
         ///     Execute a query agains a database.
         /// </summary>

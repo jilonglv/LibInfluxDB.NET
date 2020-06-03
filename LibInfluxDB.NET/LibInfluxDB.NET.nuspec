@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>LibInfluxDB.NET</id>
+    <version>1.0.0</version>
+    <title>$title$</title>
+    <authors>jilonglv</authors>
+    <owners>jilonglv</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/jilonglv/LibInfluxDB.NET</projectUrl>
+    <iconUrl>https://github.com/jilonglv/LibInfluxDB.NET</iconUrl>
+    <description>
+	fork from https://github.com/catwithboots/LibInfluxDB.NET
+	</description>
+    <releaseNotes>support net40+</releaseNotes>
+    <copyright>Copyright 2020</copyright>
+    <tags>netcore</tags>
+  </metadata>
+</package>
